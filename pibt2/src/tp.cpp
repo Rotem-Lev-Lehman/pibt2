@@ -207,7 +207,7 @@ void TP::updatePath2(int i, std::vector<Path>& TOKEN, Tasks& unassigned_tasks)
 {
   info("   ", "updatePath2, agent-", i);
 
-  Node* target;
+  Node* target = nullptr;
   Node* loc = TOKEN[i][P->getCurrentTimestep()];
   int estimated_cost = G->getNodesSize();
   for (auto p : P->getEndpoints()) {
