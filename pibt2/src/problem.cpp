@@ -167,6 +167,14 @@ MAPF_Instance::MAPF_Instance(MAPF_Instance* P, Config _config_s,
 {
 }
 
+MAPF_Instance::MAPF_Instance(MAPF_Instance* P, Config _config_s,
+                             Config _config_g, int _num_agents)
+    : Problem(P->getInstanceFileName(), P->getG(), P->getMT(), _config_s,
+              _config_g, _num_agents, P->getMaxTimestep(), P->getMaxCompTime()),
+      instance_initialized(false)
+{
+}
+
 MAPF_Instance::MAPF_Instance(MAPF_Instance* P, int _max_comp_time)
     : Problem(P->getInstanceFileName(), P->getG(), P->getMT(),
               P->getConfigStart(), P->getConfigGoal(), P->getNum(),

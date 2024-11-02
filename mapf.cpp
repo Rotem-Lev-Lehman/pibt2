@@ -7,6 +7,7 @@
 #include <pibt_plus.hpp>
 #include <problem.hpp>
 #include <push_and_swap.hpp>
+#include <privacy_solver.hpp>
 #include <random>
 #include <vector>
 
@@ -125,6 +126,8 @@ std::unique_ptr<MAPF_Solver> getSolver(const std::string solver_name,
     solver = std::make_unique<PIBT_PLUS>(P);
   } else if (solver_name == "PushAndSwap") {
     solver = std::make_unique<PushAndSwap>(P);
+  } else if (solver_name == "PP_MAPFSolver") {
+    solver = std::make_unique<PP_MAPFSolver>(P);
   } else {
     std::cout << "warn@mapf: "
               << "unknown solver name, " + solver_name + ", continue by PIBT"
@@ -155,4 +158,5 @@ void printHelp()
   HCA::printHelp();
   PIBT_PLUS::printHelp();
   PushAndSwap::printHelp();
+  PP_MAPFSolver::printHelp();
 }

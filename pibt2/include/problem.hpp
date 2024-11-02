@@ -85,6 +85,8 @@ public:
   MAPF_Instance(const std::string& _instance);
   MAPF_Instance(MAPF_Instance* P, Config _config_s, Config _config_g,
                 int _max_comp_time, int _max_timestep);
+  MAPF_Instance(MAPF_Instance* P, Config _config_s, Config _config_g,
+                int _num_agents);  // For setting a new sub problem with different amount of agents (e.g. in the privacy solver).
   MAPF_Instance(MAPF_Instance* P, int _max_comp_time);
   ~MAPF_Instance();
 
