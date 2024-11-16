@@ -97,7 +97,9 @@ int main(int argc, char* argv[])
   // solve
   auto solver = getSolver(solver_name, &P, verbose, argc, argv_copy);
   solver->setLogShort(log_short);
+  std::cout << "solving with: " << solver_name << std::endl; 
   solver->solve();
+  std::cout << "done solving with: " << solver_name << ", now validating solution." << std::endl;
   if (solver->succeed() && !solver->getSolution().validate(&P)) {
     std::cout << "error@mapf: invalid results" << std::endl;
     return 0;

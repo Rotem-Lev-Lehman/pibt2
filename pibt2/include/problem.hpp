@@ -61,6 +61,8 @@ public:
   std::mt19937* getMT() { return MT; }
   Node* getStart(int i) const;  // return start of a_i
   Node* getGoal(int i) const;   // return  goal of a_i
+  void setStart(int i, Node * new_start); // sets the start of a_i - used in randomly dispatched tasks (such as in PP_MAPFSolver)
+  void setGoal(int i, Node * new_goal);   // sets the  goal of a_i - used in randomly dispatched tasks (such as in PP_MAPFSolver)
   Config getConfigStart() const { return config_s; };
   Config getConfigGoal() const { return config_g; };
   int getMaxTimestep() { return max_timestep; };

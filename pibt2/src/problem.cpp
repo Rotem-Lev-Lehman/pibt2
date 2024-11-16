@@ -29,6 +29,16 @@ Node* Problem::getGoal(int i) const
   return config_g[i];
 }
 
+void Problem::setStart(int i, Node * new_start){
+  if (!(0 <= i && i < (int)config_s.size())) halt("invalid index");
+  config_s[i] = new_start;
+}
+
+void Problem::setGoal(int i, Node * new_goal){
+  if (!(0 <= i && i < (int)config_g.size())) halt("invalid index");
+  config_g[i] = new_goal;
+}
+
 void Problem::halt(const std::string& msg) const
 {
   std::cout << "error@Problem: " << msg << std::endl;

@@ -8,21 +8,13 @@ PP_MAPFSolver::PP_MAPFSolver(MAPF_Instance *_P) : MAPF_Solver(_P){
     solver_name = PP_MAPFSolver::SOLVER_NAME;
 }
 
-Node * PP_MAPFSolver::generate_random_node(){
-    auto _V = G->getV();
-    std::uniform_int_distribution<> distr(0, _V.size()); // define the range
-    int index = distr(*MT);
-    return _V[index];
-}
-
-PP_MAPFSolver::Agent * PP_MAPFSolver::generate_agent(int id){
-    Node *real_start = P->getStart(id);
-    Node *real_goal = P->getGoal(id);
+PP_MAPFSolver::Agent * PP_MAPFSolver::generate_agent(TasksDispatcher& tasks_dispatcher, size_t id){
+    Config start_config;
+    Config goal_config;
+    // TODO - change the seed here as well since it randomizes the same for all agents.
     std::uniform_int_distribution<> distr(0, k - 1); // define the range
-    int real_sub_agent_id = distr(*MT);
+    size_t real_sub_agent_id = distr(*MT);
     SubAgent *current_sub_agent = NULL;
-    Node *current_start = NULL;
-    Node *current_goal = NULL;
     SubAgents *sub_agents = new SubAgents();
     Agent *agent = new Agent{
         id,
@@ -30,31 +22,33 @@ PP_MAPFSolver::Agent * PP_MAPFSolver::generate_agent(int id){
         sub_agents
     };
 
-    for(int i = 0; i < k; ++i){
-        if(i == real_sub_agent_id){
-            current_start = real_start;
-            current_goal = real_goal;
-        }
-        else{
-            current_start = generate_random_node();
-            current_goal = generate_random_node();
-        }
+    tasks_dispatcher.dispatch(k, start_config, goal_config);
+
+    for(size_t i = 0; i < k; ++i){
         current_sub_agent = new SubAgent{
             i,
-            current_start,
-            current_goal
+            start_config[i],
+            goal_config[i]
         };
         sub_agents->push_back(current_sub_agent);
         current_sub_agent = NULL;
-        current_start = NULL;
-        current_goal = NULL;
+    }
+    P->setStart(id, start_config[real_sub_agent_id]);
+    P->setGoal(id, goal_config[real_sub_agent_id]);
+    if(P->getStart(id) != start_config[real_sub_agent_id]){
+        std::cout << "weirdly invalid set_start" << std::endl;
+        exit(1);
+    }
+    if(P->getGoal(id) != goal_config[real_sub_agent_id]){
+        std::cout << "weirdly invalid set_goal" << std::endl;
+        exit(1);
     }
     return agent;
 }
 
 void PP_MAPFSolver::generate_configs(Agents& agents, Config& start_config, Config& goal_config){
     int i = 0;
-    int j = 0;
+    size_t j = 0;
     Agent *agent = NULL;
     SubAgent *sub_agent = NULL;
 
@@ -80,7 +74,7 @@ void PP_MAPFSolver::set_solution(Agents& agents, Plan& mock_solution){
         current_mock_config = mock_solution.get(i);
         for (j = 0; j < P->getNum(); j++){
             current_agent = agents[j];
-            current_node = current_mock_config[j + current_agent->real_sub_agent_id];
+            current_node = current_mock_config[j * k + current_agent->real_sub_agent_id];
             current_config.push_back(current_node);
         }
         solution.add(current_config);
@@ -93,10 +87,11 @@ void PP_MAPFSolver::run()
     Config start_config;
     Config goal_config;
     Plan mock_solution;
+    TasksDispatcher tasks_dispatcher = TasksDispatcher(P);
 
     // initialize
     for (int i = 0; i < P->getNum(); ++i) {
-        Agent * a = generate_agent(i);
+        Agent * a = generate_agent(tasks_dispatcher, i);
         agents.push_back(a);
     }
     // convert to a new Problem, with n * k agents (all of the rest is the same).
@@ -105,6 +100,18 @@ void PP_MAPFSolver::run()
     auto mock_problem = MAPF_Instance(P, start_config, goal_config, k * P->getNum());
     auto solver = std::make_unique<PIBT>(&mock_problem);
     solver->solve();
+
+    if (solver->succeed() && !solver->getSolution().validate(&mock_problem)) {
+        std::cout << "error@privacy_solver: invalid results" << std::endl;
+        exit(1);
+    }
+
+    // output result
+    // TODO - change this to a variable.
+    solver->makeLog("./intermidiate_results.txt");
+    if (verbose) {
+        std::cout << "save result as " << "./intermidiate_results.txt" << std::endl;
+    }
 
     mock_solution = solver->getSolution();
     set_solution(agents, mock_solution);
@@ -150,4 +157,49 @@ void PP_MAPFSolver::printHelp()
             << "              "
             << "number of mock agents to use\n"
             << std::endl;
+}
+
+TasksDispatcher::TasksDispatcher(MAPF_Instance* _P): 
+    P(_P), 
+    available_starts(_P->getG()->getV()), 
+    available_goals(_P->getG()->getV()),
+    MT(_P->getMT())
+{
+    std::srand(42); // TODO - make this use MT - 
+    // This is like this now since when using the MT as is in the shuffle function it 
+    // does the same shuffle, instead of a different random one for starts and goals...
+    std::random_shuffle(available_starts.begin(), available_starts.end());
+    std::random_shuffle(available_goals.begin(), available_goals.end());
+}
+
+void TasksDispatcher::dispatch(size_t k, Config &start_config, Config &goal_config){
+    Node * current_start = NULL;
+    Node * current_goal = NULL;
+
+    for (size_t i = 0; i < k; i++){
+        if(available_starts.size() == 0 || available_goals.size() == 0){
+            std::cout << "error@TasksDispatcher: not enough nodes (0 nodes)." << std::endl;
+            exit(1);
+        }
+        current_start = available_starts.back();
+        current_goal = available_goals.back();
+        // The available_starts and available_goals vectors are already in random
+        // order, so just pop the last element into the configs.
+        start_config.push_back(current_start);
+        available_starts.pop_back();
+        if (current_start->id == current_goal->id){
+            // If they are the same node, use another node
+            // (the one before last, so it will be easy to pop).
+            if (available_goals.size() < 2){
+                std::cout << "error@TasksDispatcher: not enough nodes (1 same node)." << std::endl;
+                exit(1);
+            }
+            current_goal = available_goals[available_goals.size() - 2];
+            available_goals.erase(available_goals.begin() + (available_goals.size() - 2));
+        }
+        else{
+            available_goals.pop_back();
+        }
+        goal_config.push_back(current_goal);
+    }
 }

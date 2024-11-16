@@ -1,48 +1,69 @@
 #pragma once
 #include "solver.hpp"
 
-class PP_MAPFSolver: public MAPF_Solver
+
+class TasksDispatcher
 {
-public:
-    static const std::string SOLVER_NAME;
 protected:
-    int k;  // k - minimal revealed privacy per agent (the amount of optional nodes we might be at each timestamp)
+  MAPF_Instance* const P;  // problem instance
 
 private:
+  Nodes available_starts;
+  Nodes available_goals;
+  std::mt19937* const MT;   // seed for randomness
 
+public:
+  TasksDispatcher(MAPF_Instance* _P);
+  ~TasksDispatcher() {}
+
+  /**
+   * Dispatches k options of (start, goal) pairs from the currently available nodes.
+   * Returns 2 configs, the first for the start nodes and the second for the goals. 
+   */
+  void dispatch(size_t k, Config& start_config, Config& goal_config);
+};
+
+class PP_MAPFSolver : public MAPF_Solver
+{
+public:
+  static const std::string SOLVER_NAME;
+
+protected:
+  size_t k;  // k - minimal revealed privacy per agent (the amount of optional
+          // nodes we might be at each timestamp)
+
+private:
   struct SubAgent {
-    int id;
-    Node *start;
-    Node *goal;
+    size_t id;
+    Node* start;
+    Node* goal;
   };
 
   using SubAgents = std::vector<SubAgent*>;
 
   // PP_MAPFSolver agent
   struct Agent {
-    int id;
-    int real_sub_agent_id;
-    SubAgents *sub_agents;
+    size_t id;
+    size_t real_sub_agent_id;
+    SubAgents* sub_agents;
   };
   using Agents = std::vector<Agent*>;
 
-
-
 private:
-    Agent * generate_agent(int id);
-    void generate_configs(Agents& agents, Config& start, Config& goal);
-    void set_solution(Agents& agents, Plan& solution);
-    Node * generate_random_node();
+  Agent* generate_agent(TasksDispatcher& tasks_dispatcher, size_t id);
+  void generate_configs(Agents& agents, Config& start, Config& goal);
+  void set_solution(Agents& agents, Plan& solution);
+  Node* generate_random_node();
 
 protected:
-    void run();
+  void run();
 
 public:
-    PP_MAPFSolver(MAPF_Instance* _P);
-    ~PP_MAPFSolver() {}
+  PP_MAPFSolver(MAPF_Instance* _P);
+  ~PP_MAPFSolver() {}
 
-    void setParams(int argc, char* argv[]);
-    static void printHelp();
+  void setParams(int argc, char* argv[]);
+  static void printHelp();
 
-    int getK() const { return k; };
+  size_t getK() const { return k; };
 };
