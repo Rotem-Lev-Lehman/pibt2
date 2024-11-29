@@ -165,11 +165,8 @@ TasksDispatcher::TasksDispatcher(MAPF_Instance* _P):
     available_goals(_P->getG()->getV()),
     MT(_P->getMT())
 {
-    std::srand(42); // TODO - make this use MT - 
-    // This is like this now since when using the MT as is in the shuffle function it 
-    // does the same shuffle, instead of a different random one for starts and goals...
-    std::random_shuffle(available_starts.begin(), available_starts.end());
-    std::random_shuffle(available_goals.begin(), available_goals.end());
+    std::shuffle(available_starts.begin(), available_starts.end(), *MT);
+    std::shuffle(available_goals.begin(), available_goals.end(), *MT);
 }
 
 void TasksDispatcher::dispatch(size_t k, Config &start_config, Config &goal_config){
