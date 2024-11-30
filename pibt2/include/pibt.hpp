@@ -40,6 +40,17 @@ private:
   // result of priority inheritance: true -> valid, false -> invalid
   bool funcPIBT(Agent* ai, Agent* aj = nullptr);
 
+  /**
+   * @brief Occupies the entire field of view of the given node to be of the given agent.
+   * 
+   * @note In order to un-occupy, just insert nullptr as the given agent.
+   * 
+   * @param occupied The occupied nodes vector to occupy at.
+   * @param node The node to occupy it's field of view.
+   * @param agent The agent to occupy inside the field of view.
+   */
+  void occupy(Agents & occupied, Node * node, Agent * agent);
+
   // main
   void run();
 

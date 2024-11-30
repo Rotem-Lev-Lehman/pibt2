@@ -5,6 +5,7 @@
 #include "default_params.hpp"
 #include "task.hpp"
 #include "util.hpp"
+#include "field_of_view.hpp"
 
 using Config = std::vector<Node*>;  // < loc_0[t], loc_1[t], ... >
 using Configs = std::vector<Config>;
@@ -43,6 +44,9 @@ protected:
   int num_agents;        // number of agents
   int max_timestep;      // timestep limit
   int max_comp_time;     // comp_time limit, ms
+  // Field of View - controls how much margin to keep from different agents.
+  // For regular problems just use field_of_view_radius = 0.
+  int field_of_view_radius = 0;
 
   // utilities
   void halt(const std::string& msg) const;
@@ -68,6 +72,7 @@ public:
   int getMaxTimestep() { return max_timestep; };
   int getMaxCompTime() { return max_comp_time; };
   std::string getInstanceFileName() { return instance; };
+  int getFieldOfViewRadius() { return field_of_view_radius; };
 
   void setMaxCompTime(const int t) { max_comp_time = t; }
 };
