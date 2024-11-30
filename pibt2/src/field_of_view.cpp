@@ -18,3 +18,9 @@ Nodes get_field_of_view(Graph * g, Node * node, int field_radius){
     }
     return field_of_view;
 }
+
+bool in_field_of_view(Node *n1, Node *n2, int field_radius){
+    int x_diff = std::abs(n1->pos.x - n2->pos.x);
+    int y_diff = std::abs(n1->pos.y - n2->pos.y);
+    return x_diff <= field_radius && y_diff <= field_radius;
+}
