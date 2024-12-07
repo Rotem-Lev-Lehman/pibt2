@@ -30,7 +30,9 @@ public:
 
 protected:
   size_t k;  // k - minimal revealed privacy per agent (the amount of optional
-          // nodes we might be at each timestamp)
+          // nodes we might be at each timestamp).
+  int field_of_view_radius; // field_of_view_radius - 
+          // each agent must keep away from other agents by at least this radius.
 
 private:
   struct SubAgent {

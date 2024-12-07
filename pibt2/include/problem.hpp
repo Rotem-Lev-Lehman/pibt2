@@ -73,6 +73,7 @@ public:
   int getMaxCompTime() { return max_comp_time; };
   std::string getInstanceFileName() { return instance; };
   int getFieldOfViewRadius() { return field_of_view_radius; };
+  void setFieldOfViewRadius(int new_field_of_view_radius) { field_of_view_radius = new_field_of_view_radius; };
 
   void setMaxCompTime(const int t) { max_comp_time = t; }
 };

@@ -87,6 +87,7 @@ void PP_MAPFSolver::run()
     Config start_config;
     Config goal_config;
     Plan mock_solution;
+    P->setFieldOfViewRadius(field_of_view_radius);
     TasksDispatcher tasks_dispatcher = TasksDispatcher(P);
 
     // initialize
@@ -98,6 +99,7 @@ void PP_MAPFSolver::run()
     generate_configs(agents, start_config, goal_config);
 
     auto mock_problem = MAPF_Instance(P, start_config, goal_config, k * P->getNum());
+    mock_problem.setFieldOfViewRadius(field_of_view_radius);
     auto solver = std::make_unique<PIBT>(&mock_problem);
     solver->solve();
 
@@ -128,17 +130,23 @@ void PP_MAPFSolver::run()
 void PP_MAPFSolver::setParams(int argc, char* argv[])
 {
     bool k_provided = false;
+    bool field_of_view_radius_provided = false;
     struct option longopts[] = {
         {"mock-agents-num", required_argument, nullptr, 'k'},
+        {"field-of-view-radius", required_argument, nullptr, 'r'},
         {nullptr, 0, nullptr, 0},
     };
     optind = 1;  // reset
     int opt, longindex;
-    while ((opt = getopt_long(argc, argv, "k:", longopts, &longindex)) != -1) {
+    while ((opt = getopt_long(argc, argv, ":r:k:", longopts, &longindex)) != -1) {
         switch (opt) {
         case 'k':
             k = std::stoi(optarg);
             k_provided = true;
+            break;
+        case 'r':
+            field_of_view_radius = std::stoi(optarg);
+            field_of_view_radius_provided = true;
             break;
         default:
             break;
@@ -148,14 +156,21 @@ void PP_MAPFSolver::setParams(int argc, char* argv[])
         std::cerr << "Error: The -k (or --mock-agents-num) option is required." << std::endl;
         exit(1);
     }
+    if (!field_of_view_radius_provided) {
+        std::cerr << "Error: The -r (or --field-of-view-radius) option is required." << std::endl;
+        exit(1);
+    }
 }
 
 void PP_MAPFSolver::printHelp()
 {
   std::cout << PP_MAPFSolver::SOLVER_NAME << "\n"
             << "  -k --mock-agents-num"
-            << "              "
+            << "          "
             << "number of mock agents to use\n"
+            << "  -r --field-of-view-radius"
+            << "     "
+            << "radius that other agents may see each other\n"
             << std::endl;
 }
 
@@ -168,6 +183,19 @@ TasksDispatcher::TasksDispatcher(MAPF_Instance* _P):
     std::shuffle(available_starts.begin(), available_starts.end(), *MT);
     std::shuffle(available_goals.begin(), available_goals.end(), *MT);
 }
+
+/**
+ * @brief A struct for defining an Unary Operator for checking if a node is in the field of view.
+ * Used in the std::remove_if statement in the TasksDispatcher::dispatch function.
+ */
+struct IsInFieldOfView {
+    IsInFieldOfView(Graph * g, Node * node, int field_of_view_radius) : 
+        field_of_view{get_field_of_view(g, node, field_of_view_radius)} {}
+    bool operator()(Node * other) {
+        return std::find(field_of_view.begin(), field_of_view.end(), other) != field_of_view.end();
+    }
+    Nodes field_of_view;
+};
 
 void TasksDispatcher::dispatch(size_t k, Config &start_config, Config &goal_config){
     Node * current_start = NULL;
@@ -198,5 +226,15 @@ void TasksDispatcher::dispatch(size_t k, Config &start_config, Config &goal_conf
             available_goals.pop_back();
         }
         goal_config.push_back(current_goal);
+
+        // Remove all of the field of view of current_goal and current_start from the available nodes:
+        available_starts.erase(
+            std::remove_if(available_starts.begin(), available_starts.end(), IsInFieldOfView(P->getG(), current_start, P->getFieldOfViewRadius())),
+            available_starts.end()
+        );
+        available_goals.erase(
+            std::remove_if(available_goals.begin(), available_goals.end(), IsInFieldOfView(P->getG(), current_goal, P->getFieldOfViewRadius())),
+            available_goals.end()
+        );
     }
 }
