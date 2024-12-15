@@ -33,6 +33,9 @@ protected:
           // nodes we might be at each timestamp).
   int field_of_view_radius; // field_of_view_radius - 
           // each agent must keep away from other agents by at least this radius.
+  bool use_dispatcher = false; // True - use the TasksDispatcher class to create the new problem to solve.
+          // False - use the input problem and divide it to the different agents by the given k.
+          //         Will use the agents as if each agent's mock agents are one after the other.
 
 private:
   struct SubAgent {

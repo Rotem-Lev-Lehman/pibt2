@@ -8,6 +8,8 @@ PP_MAPFSolver::PP_MAPFSolver(MAPF_Instance *_P) : MAPF_Solver(_P){
     solver_name = PP_MAPFSolver::SOLVER_NAME;
 }
 
+
+
 PP_MAPFSolver::Agent * PP_MAPFSolver::generate_agent(TasksDispatcher& tasks_dispatcher, size_t id){
     Config start_config;
     Config goal_config;
@@ -91,9 +93,46 @@ void PP_MAPFSolver::run()
     TasksDispatcher tasks_dispatcher = TasksDispatcher(P);
 
     // initialize
-    for (int i = 0; i < P->getNum(); ++i) {
-        Agent * a = generate_agent(tasks_dispatcher, i);
-        agents.push_back(a);
+    if(use_dispatcher){
+        for (int i = 0; i < P->getNum(); ++i) {
+            Agent * a = generate_agent(tasks_dispatcher, i);
+            agents.push_back(a);
+        }
+    }
+    else{
+        if(0 != P->getNum() % k){
+            throw std::runtime_error("The given amount of agents must be divisable by k.\n");
+        }
+        std::uniform_int_distribution<> distr(0, k - 1); // define the range
+        Config config_start = P->getConfigStart();
+        Config config_goal = P->getConfigGoal();
+        Config real_agents_config_start;
+        Config real_agents_config_goal;
+        size_t real_agents_num = P->getNum() / k;
+        for (size_t i = 0; i < real_agents_num; i++){
+            size_t real_sub_agent_id = distr(*MT);
+            SubAgents * mock_agents = new SubAgents();
+            Agent * a = new Agent{
+                i,
+                real_sub_agent_id,
+                mock_agents
+            };
+            for (size_t j = 0; j < k; j++){
+                mock_agents->push_back(
+                    new SubAgent{
+                        j,
+                        config_start[i * k + j],
+                        config_goal[i * k + j]
+                    }
+                );
+            }
+            agents.push_back(a);
+            real_agents_config_start.push_back(config_start[i * k + real_sub_agent_id]);
+            real_agents_config_goal.push_back(config_goal[i * k + real_sub_agent_id]);
+        }
+        P->setConfigStart(real_agents_config_start);
+        P->setConfigGoal(real_agents_config_goal);
+        P->setNum(real_agents_num);
     }
     // convert to a new Problem, with n * k agents (all of the rest is the same).
     generate_configs(agents, start_config, goal_config);
@@ -134,11 +173,12 @@ void PP_MAPFSolver::setParams(int argc, char* argv[])
     struct option longopts[] = {
         {"mock-agents-num", required_argument, nullptr, 'k'},
         {"field-of-view-radius", required_argument, nullptr, 'r'},
+        {"use-dispatcher", no_argument, nullptr, 'u'},
         {nullptr, 0, nullptr, 0},
     };
     optind = 1;  // reset
     int opt, longindex;
-    while ((opt = getopt_long(argc, argv, ":r:k:", longopts, &longindex)) != -1) {
+    while ((opt = getopt_long(argc, argv, ":r:k:u", longopts, &longindex)) != -1) {
         switch (opt) {
         case 'k':
             k = std::stoi(optarg);
@@ -147,6 +187,9 @@ void PP_MAPFSolver::setParams(int argc, char* argv[])
         case 'r':
             field_of_view_radius = std::stoi(optarg);
             field_of_view_radius_provided = true;
+            break;
+        case 'u':
+            use_dispatcher = true;
             break;
         default:
             break;
@@ -171,6 +214,9 @@ void PP_MAPFSolver::printHelp()
             << "  -r --field-of-view-radius"
             << "     "
             << "radius that other agents may see each other\n"
+            << "  -u --use-dispatcher"
+            << "           "
+            << "use the TasksDispatcher instead of the given agents\n"
             << std::endl;
 }
 

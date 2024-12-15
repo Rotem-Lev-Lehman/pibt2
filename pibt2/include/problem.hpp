@@ -62,6 +62,7 @@ public:
 
   Graph* getG() { return G; }
   int getNum() { return num_agents; }
+  void setNum(int new_num_agents) { num_agents = new_num_agents; }
   std::mt19937* getMT() { return MT; }
   Node* getStart(int i) const;  // return start of a_i
   Node* getGoal(int i) const;   // return  goal of a_i
@@ -69,6 +70,8 @@ public:
   void setGoal(int i, Node * new_goal);   // sets the  goal of a_i - used in randomly dispatched tasks (such as in PP_MAPFSolver)
   Config getConfigStart() const { return config_s; };
   Config getConfigGoal() const { return config_g; };
+  void setConfigStart(Config & new_config)  { config_s = new_config; };
+  void setConfigGoal(Config & new_config)  { config_g = new_config; };
   int getMaxTimestep() { return max_timestep; };
   int getMaxCompTime() { return max_comp_time; };
   std::string getInstanceFileName() { return instance; };
