@@ -5,6 +5,7 @@
 #include "default_params.hpp"
 #include "task.hpp"
 #include "util.hpp"
+#include "field_of_view.hpp"
 
 using Config = std::vector<Node*>;  // < loc_0[t], loc_1[t], ... >
 using Configs = std::vector<Config>;
@@ -43,6 +44,9 @@ protected:
   int num_agents;        // number of agents
   int max_timestep;      // timestep limit
   int max_comp_time;     // comp_time limit, ms
+  // Field of View - controls how much margin to keep from different agents.
+  // For regular problems just use field_of_view_radius = 0.
+  int field_of_view_radius = 0;
 
   // utilities
   void halt(const std::string& msg) const;
@@ -58,14 +62,21 @@ public:
 
   Graph* getG() { return G; }
   int getNum() { return num_agents; }
+  void setNum(int new_num_agents) { num_agents = new_num_agents; }
   std::mt19937* getMT() { return MT; }
   Node* getStart(int i) const;  // return start of a_i
   Node* getGoal(int i) const;   // return  goal of a_i
+  void setStart(int i, Node * new_start); // sets the start of a_i - used in randomly dispatched tasks (such as in PP_MAPFSolver)
+  void setGoal(int i, Node * new_goal);   // sets the  goal of a_i - used in randomly dispatched tasks (such as in PP_MAPFSolver)
   Config getConfigStart() const { return config_s; };
   Config getConfigGoal() const { return config_g; };
+  void setConfigStart(Config & new_config)  { config_s = new_config; };
+  void setConfigGoal(Config & new_config)  { config_g = new_config; };
   int getMaxTimestep() { return max_timestep; };
   int getMaxCompTime() { return max_comp_time; };
   std::string getInstanceFileName() { return instance; };
+  int getFieldOfViewRadius() { return field_of_view_radius; };
+  void setFieldOfViewRadius(int new_field_of_view_radius) { field_of_view_radius = new_field_of_view_radius; };
 
   void setMaxCompTime(const int t) { max_comp_time = t; }
 };
@@ -85,6 +96,8 @@ public:
   MAPF_Instance(const std::string& _instance);
   MAPF_Instance(MAPF_Instance* P, Config _config_s, Config _config_g,
                 int _max_comp_time, int _max_timestep);
+  MAPF_Instance(MAPF_Instance* P, Config _config_s, Config _config_g,
+                int _num_agents);  // For setting a new sub problem with different amount of agents (e.g. in the privacy solver).
   MAPF_Instance(MAPF_Instance* P, int _max_comp_time);
   ~MAPF_Instance();
 

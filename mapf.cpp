@@ -7,6 +7,7 @@
 #include <pibt_plus.hpp>
 #include <problem.hpp>
 #include <push_and_swap.hpp>
+#include <privacy_solver.hpp>
 #include <random>
 #include <vector>
 
@@ -96,7 +97,9 @@ int main(int argc, char* argv[])
   // solve
   auto solver = getSolver(solver_name, &P, verbose, argc, argv_copy);
   solver->setLogShort(log_short);
+  std::cout << "solving with: " << solver_name << std::endl; 
   solver->solve();
+  std::cout << "done solving with: " << solver_name << ", now validating solution." << std::endl;
   if (solver->succeed() && !solver->getSolution().validate(&P)) {
     std::cout << "error@mapf: invalid results" << std::endl;
     return 0;
@@ -125,6 +128,8 @@ std::unique_ptr<MAPF_Solver> getSolver(const std::string solver_name,
     solver = std::make_unique<PIBT_PLUS>(P);
   } else if (solver_name == "PushAndSwap") {
     solver = std::make_unique<PushAndSwap>(P);
+  } else if (solver_name == "PP_MAPFSolver") {
+    solver = std::make_unique<PP_MAPFSolver>(P);
   } else {
     std::cout << "warn@mapf: "
               << "unknown solver name, " + solver_name + ", continue by PIBT"
@@ -155,4 +160,5 @@ void printHelp()
   HCA::printHelp();
   PIBT_PLUS::printHelp();
   PushAndSwap::printHelp();
+  PP_MAPFSolver::printHelp();
 }

@@ -10,6 +10,13 @@ PIBT::PIBT(MAPF_Instance* _P)
   solver_name = PIBT::SOLVER_NAME;
 }
 
+void PIBT::occupy(Agents & occupied, Node * node, Agent * agent){
+  Nodes field_of_view = get_field_of_view(G, node, P->getFieldOfViewRadius());
+  for(const Node * current_node : field_of_view){
+    occupied[current_node->id] = agent;
+  }
+}
+
 void PIBT::run()
 {
   // compare priority of agents
@@ -34,7 +41,7 @@ void PIBT::run()
                          d,                          // dist from s -> g
                          getRandomFloat(0, 1, MT)};  // tie-breaker
     A.push_back(a);
-    occupied_now[s->id] = a;
+    occupy(occupied_now, s, a);
   }
   solution.add(P->getConfigStart());
 
@@ -58,11 +65,13 @@ void PIBT::run()
     Config config(P->getNum(), nullptr);
     for (auto a : A) {
       // clear
-      if (occupied_now[a->v_now->id] == a) occupied_now[a->v_now->id] = nullptr;
-      occupied_next[a->v_next->id] = nullptr;
+      if (occupied_now[a->v_now->id] == a) {
+        occupy(occupied_now, a->v_now, nullptr);
+      }
+      occupy(occupied_next, a->v_next, nullptr);
       // set next location
       config[a->id] = a->v_next;
-      occupied_now[a->v_next->id] = a;
+      occupy(occupied_now, a->v_next, a);
       // check goal condition
       check_goal_cond &= (a->v_next == a->g);
       // update priority
@@ -122,19 +131,24 @@ bool PIBT::funcPIBT(Agent* ai, Agent* aj)
     if (aj != nullptr && u == aj->v_now) continue;
 
     // reserve
-    occupied_next[u->id] = ai;
+    occupy(occupied_next, u, ai);
+
     ai->v_next = u;
 
     auto ak = occupied_now[u->id];
     if (ak != nullptr && ak->v_next == nullptr) {
-      if (!funcPIBT(ak, ai)) continue;  // replanning
+      if (!funcPIBT(ak, ai)) {
+        //remove occupation for the next iterations:
+        occupy(occupied_next, u, nullptr);
+        continue;  // replanning
+      }
     }
     // success to plan next one step
     return true;
   }
 
   // failed to secure node
-  occupied_next[ai->v_now->id] = ai;
+  occupy(occupied_next, ai->v_now, ai);
   ai->v_next = ai->v_now;
   return false;
 }
